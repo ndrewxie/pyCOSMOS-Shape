@@ -10,7 +10,7 @@ import pandas as pd
 from sklearn.cluster import *
 from math import sqrt
 from numpy import floor, ceil
-from scipy.stats import wasserstein_distance
+from scipy.stats import wasserstein_distance, kstest
 import config
 
 
@@ -343,11 +343,15 @@ def shape_analysis_pore_type_matrix():
         psd_samples_by_type[type_index].append(d)
     
     dist_matrix = np.zeros((config.NumberOfPoreTypes, config.NumberOfPoreTypes))
+    dist_matrix2 = np.zeros((config.NumberOfPoreTypes, config.NumberOfPoreTypes))
     for i in range(0, config.NumberOfPoreTypes):
         for j in range(0, config.NumberOfPoreTypes):
             dist_matrix[i][j] = wasserstein_distance(psd_samples_by_type[i], psd_samples_by_type[j])
-    print("Distance matrix: ")
+            dist_matrix2[i][j] = kstest(psd_samples_by_type[i], psd_samples_by_type[j]).pvalue
+    print("Distance matrix (wasserstein): ")
     print(dist_matrix)
+    print("Distance matrix (KS): ")
+    print(dist_matrix2)
 
     clustering = AgglomerativeClustering(affinity='precomputed', distance_threshold=config.dist_cutoff, n_clusters=None, linkage='average').fit(dist_matrix)
     labels = clustering.labels_
