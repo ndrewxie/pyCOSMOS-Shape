@@ -53,7 +53,7 @@ def extract_points_in_a_bin(x, y, z, geom_dia, bin_address_of_points, boi):
     return xk, yk, zk, diak
 
 
-def cluster_points_within_a_bin(ak, bk, ck, bin_number):
+def cluster_points_within_a_bin(ak, bk, ck):
     """
     For a given bin bin_number,
     1. Extracts all points within the bin and store in xk, yk, zk

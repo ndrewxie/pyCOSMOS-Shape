@@ -36,57 +36,69 @@ if __name__ == "__main__":
     bin_analyzed = []
 
     # Identify and analyze primary bins
-    for bin_number in bin_order:
-
-        # If the number of pore types identified = NumberOfPoreTypes input, break the loop
-        if config.pore_type_count == config.NumberOfPoreTypes:
-            break
-
-        # 1. Extract the points within this bin
-        # (ak, bk, ck) are list of points with the same bin
-        ak, bk, ck, diak = extract_points_in_a_bin(a, b, c, geom_dia, bin_address_of_points, bin_number)
-
-        if len(ak) == 0:  # if the bin contains no points (empty bin), continue to next bin
+    # TODO: Modification currently breaks secondary/primary bin classifications (# of points w/ label -1)
+    bin_number = 0
+    for bin_histo_number in bin_order:
+        histo_ak, histo_bk, histo_ck, histo_diak = \
+            extract_points_in_a_bin(a, b, c, geom_dia, bin_address_of_points, bin_histo_number)
+        if len(histo_ak) == 0:
             continue
+        histo_cluster_labels, histo_cluster_center_list = \
+            cluster_points_within_a_bin(histo_ak, histo_bk, histo_ck)
+        histo_n_clusters = max(histo_cluster_labels) + 1
 
-        # 2. Cluster the points within the bin
-        # cluster_labels = list of len(ak) with labels
-        cluster_labels, cluster_center_list = cluster_points_within_a_bin(ak, bk, ck, bin_number)
+        for center_indx in range(0, histo_n_clusters):
+            # If the number of pore types identified = NumberOfPoreTypes input, break the loop
+            if config.pore_type_count == config.NumberOfPoreTypes:
+                break
 
-        # 3. Calculate the shape, size, and orientation of the cluster
-        cluster_shape_list, cluster_size_list, cluster_length_list, cluster_orientation_list = \
-            calculate_shape_and_size_of_cluster_within_bin(cluster_labels, \
-                                                           bin_number, ak, bk, ck, cluster_center_list)
+            # 1. Extract the points within this bin
+            # (ak, bk, ck) are list of points with the same bin
+            histo_mask = (histo_cluster_labels == center_indx)
+            ak = histo_ak[histo_mask]
+            bk = histo_bk[histo_mask]
+            ck = histo_ck[histo_mask]
+            diak = (np.array(histo_diak)[histo_mask]).tolist()
 
-        # 4, Classify the points as primary or secondary
-        # primary_bin = 1
-        primary_bin = classify_bin(cluster_shape_list, diak, cluster_labels, bin_number)
+            # 2. Cluster the points within the bin
+            # cluster_labels = list of len(ak) with labels
+            cluster_labels, cluster_center_list = cluster_points_within_a_bin(ak, bk, ck)
 
-        if primary_bin:
-            Ncluster = max(cluster_labels) + 1
-            config.pore_type_count += primary_bin
-            print('New pore type identified, pore type count = ', config.pore_type_count)
-            config.all_cluster_center_list.append(cluster_center_list)
-            config.all_cluster_diameter_list.append(cluster_size_list)
-            config.all_cluster_length_list.append(cluster_length_list)
-            config.all_cluster_shape_list.append(cluster_shape_list)
-            config.all_cluster_orientation_list.append(cluster_orientation_list)
-            config.all_cluster_pore_type_labels.append(Ncluster * [config.pore_type_count])
+            # 3. Calculate the shape, size, and orientation of the cluster
+            cluster_shape_list, cluster_size_list, cluster_length_list, cluster_orientation_list = \
+                calculate_shape_and_size_of_cluster_within_bin(cluster_labels, \
+                                                            bin_number, ak, bk, ck, cluster_center_list)
 
-            # update the pore type matrix
-            update_pore_type_matrix(ak, bk, ck, cluster_labels)
+            # 4, Classify the points as primary or secondary
+            # primary_bin = 1
+            primary_bin = classify_bin(cluster_shape_list, diak, cluster_labels, bin_number)
 
-            # x, y, z coordinates in 3d
-            xk, yk, zk = abc_to_xyz(ak, bk, ck)
-            # save xyz file
-            save_as_xyz(bin_number, xk, yk, zk, cluster_labels)
-            # plot x, y, z coordinates
-            plot_xyz(xk, yk, zk, cluster_labels)
-        else:
-            # uncomment to see secondary bins on browser
-            # xk, yk, zk = abc_to_xyz(ak, bk, ck)
-            # plot_xyz(xk, yk, zk, cluster_labels)
-            print('%d is a secondary bin' % bin_number)
+            if primary_bin:
+                Ncluster = max(cluster_labels) + 1
+                config.pore_type_count += primary_bin
+                print('New pore type identified, pore type count = ', config.pore_type_count)
+                config.all_cluster_center_list.append(cluster_center_list)
+                config.all_cluster_diameter_list.append(cluster_size_list)
+                config.all_cluster_length_list.append(cluster_length_list)
+                config.all_cluster_shape_list.append(cluster_shape_list)
+                config.all_cluster_orientation_list.append(cluster_orientation_list)
+                config.all_cluster_pore_type_labels.append(Ncluster * [config.pore_type_count])
+
+                # update the pore type matrix
+                update_pore_type_matrix(ak, bk, ck, cluster_labels)
+
+                # x, y, z coordinates in 3d
+                xk, yk, zk = abc_to_xyz(ak, bk, ck)
+                # save xyz file
+                save_as_xyz(bin_number, xk, yk, zk, cluster_labels)
+                # plot x, y, z coordinates
+                plot_xyz(xk, yk, zk, cluster_labels)
+            else:
+                # uncomment to see secondary bins on browser
+                # xk, yk, zk = abc_to_xyz(ak, bk, ck)
+                # plot_xyz(xk, yk, zk, cluster_labels)
+                print('%d is a secondary bin' % bin_number)
+            bin_number += 1
 
         # new_pore_type_found = cluster_bin(a, b, c, geom_dia, bin_index_of_points, boi)
 
