@@ -28,6 +28,8 @@ with open(INPUT) as inp:
             eps = float(s[1])
         if 'nmin' in line:
             Nmin = int(s[1])
+        if 'distcutoff' in line:
+            dist_cutoff = float(s[1])
 
 # output file
 File_pore_type_matrix = "pore_type_matrix.csv"

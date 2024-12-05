@@ -115,6 +115,7 @@ if __name__ == "__main__":
     # Analyze secondary bins
     print('Analyzing the secondary bins')
     fill_pore_type_matrix()
+    shape_analysis_pore_type_matrix()
     show_pore_type_matrix()
     plot_pore_centers_mayavi()
 

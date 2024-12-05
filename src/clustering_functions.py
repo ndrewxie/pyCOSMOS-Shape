@@ -10,6 +10,7 @@ import pandas as pd
 from sklearn.cluster import *
 from math import sqrt
 from numpy import floor, ceil
+from scipy.stats import wasserstein_distance
 import config
 
 
@@ -320,6 +321,50 @@ def fill_pore_type_matrix():
                     config.pore_type_matrix_with_pore_type_labels[i][j][k] = all_cluster_pore_type_labels_flatten[
                         index_min]
 
+def shape_analysis_pore_type_matrix():
+    def merge_property_list(input_list, cluster_list):
+        out_list = []
+        n_clusters = max(cluster_list)+1
+        for _ in range(0, n_clusters):
+            out_list.append([])
+        for (cluster, prop) in zip(cluster_list, input_list):
+            out_list[cluster].extend(prop)
+        return out_list 
+    a, b, c, geom_dia = read_vpsdpts(config.vpsdpts_file)
+
+    psd_samples_by_type = []
+    for i in range(0, config.NumberOfPoreTypes):
+        psd_samples_by_type.append([])
+    for (x, y, z, d) in zip(a, b, c, geom_dia):
+        i, j, k = int(floor(x)), int(floor(y)), int(floor(z))
+        type_index = int(config.pore_type_matrix_with_pore_type_labels[i][j][k]) - 1
+        if type_index < 0:
+            continue
+        psd_samples_by_type[type_index].append(d)
+    
+    dist_matrix = np.zeros((config.NumberOfPoreTypes, config.NumberOfPoreTypes))
+    for i in range(0, config.NumberOfPoreTypes):
+        for j in range(0, config.NumberOfPoreTypes):
+            dist_matrix[i][j] = wasserstein_distance(psd_samples_by_type[i], psd_samples_by_type[j])
+    print("Distance matrix: ")
+    print(dist_matrix)
+
+    clustering = AgglomerativeClustering(affinity='precomputed', distance_threshold=config.dist_cutoff, n_clusters=None, linkage='average').fit(dist_matrix)
+    labels = clustering.labels_
+    print("Labels: ")
+    print(labels)
+
+    n_labels = max(labels)+1
+    for i in range(0, int(ceil(config.Lx))):
+        for j in range(0, int(ceil(config.Ly))):
+            for k in range(0, int(ceil(config.Lz))):
+                type_index = int(config.pore_type_matrix_with_pore_type_labels[i][j][k]) - 1
+                if type_index < 0:
+                    continue
+                config.pore_type_matrix_with_pore_type_labels[i][j][k] = labels[type_index]+1
+    for i in range(0, len(config.all_cluster_pore_type_labels)):
+        pore_types = config.all_cluster_pore_type_labels[i]
+        config.all_cluster_pore_type_labels[i] = [labels[x-1]+1 for x in pore_types]
 
 def show_pore_type_matrix():
     """
