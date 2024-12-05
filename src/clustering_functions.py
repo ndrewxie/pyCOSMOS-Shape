@@ -369,6 +369,7 @@ def shape_analysis_pore_type_matrix():
     for i in range(0, len(config.all_cluster_pore_type_labels)):
         pore_types = config.all_cluster_pore_type_labels[i]
         config.all_cluster_pore_type_labels[i] = [labels[x-1]+1 for x in pore_types]
+    config.pore_type_count = n_labels
 
 def show_pore_type_matrix():
     """
